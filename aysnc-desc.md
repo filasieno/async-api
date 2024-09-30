@@ -272,3 +272,80 @@ components:
 
 This tutorial provides a basic framework for describing a Kafka-based AsyncAPI application. Remember to adapt and expand this template based on your specific Kafka configuration and application requirements.
 
+```plantuml
+@startuml
+skinparam componentStyle uml2
+skinparam linetype ortho
+
+' Main components
+class "AsyncAPI Object" as AsyncAPI
+class "Info Object" as Info
+class "Server Object" as Server
+class "Channel Object" as Channel
+class "Operation Object" as Operation
+class "Message Object" as Message
+class "Schema Object" as Schema
+class "Components Object" as Components
+class "Security Scheme Object" as SecurityScheme
+class "Tag Object" as Tag
+class "External Documentation Object" as ExternalDocs
+class "Parameter Object" as Parameter
+class "Reference Object" as Reference
+class "Correlation ID Object" as CorrelationID
+class "Bindings Object" as Bindings
+class "OAuth Flows Object" as OAuthFlows
+class "Server Variable Object" as ServerVariable
+class "Message Trait Object" as MessageTrait
+class "Operation Trait Object" as OperationTrait
+
+' IsA relationships
+Bindings <|-- "Server Bindings Object"
+Bindings <|-- "Channel Bindings Object"
+Bindings <|-- "Operation Bindings Object"
+Bindings <|-- "Message Bindings Object"
+
+' ComposedBy relationships
+AsyncAPI *-- Info
+AsyncAPI *-- "0..*" Server
+AsyncAPI *-- "0..*" Channel
+AsyncAPI *-- Components
+
+Server *-- "0..*" ServerVariable
+Server *-- "0..1" Bindings
+
+Channel *-- "0..*" Operation
+Channel *-- "0..*" Parameter
+Channel *-- "0..1" Bindings
+
+Operation *-- "0..*" Message
+Operation *-- "0..1" ExternalDocs
+Operation *-- "0..1" Bindings
+Operation *-- "0..*" OperationTrait
+
+Message *-- "0..1" Schema
+Message *-- "0..1" CorrelationID
+Message *-- "0..*" MessageTrait
+Message *-- "0..1" Bindings
+
+Components *-- "0..*" Schema
+Components *-- "0..*" Server
+Components *-- "0..*" Channel
+Components *-- "0..*" Operation
+Components *-- "0..*" Message
+Components *-- "0..*" SecurityScheme
+Components *-- "0..*" Parameter
+Components *-- "0..*" CorrelationID
+
+SecurityScheme *-- "0..1" OAuthFlows
+
+' References relationships
+Reference ..> Components : references
+Message ..> Tag : references
+Operation ..> Tag : references
+AsyncAPI ..> Tag : references
+
+note "All objects can potentially\nreference other objects\nusing Reference Object" as N1
+
+@enduml
+```
+
