@@ -1,123 +1,428 @@
-Sequence details
-001	DGWService	
-Get BA debit card List throught a call to DGW service.
+asyncapi: 3.0.0
+info:
+  title: Card Operations API
+  version: 1.0.0
+  description: Event-driven API for managing credit card operations, including retrieving card lists and blocking cards.
 
-Service to call: CardService.getBADebitCardList
-
-* Request *
-
-Get debit cards list <complexType name="GetBADebitCardListReq">
-
-personId	long	mutually exclusive parameter to accountDetail	accountNumber     
-accountDetail	BAAccountDetailDTO	mutually exclusive parameter to personId	details of account
-kin	kinTypeDTO	no	Informations related to debit card
-
-BAAccountDetailDTO (DTO is defined in DGW file BankAccountDTO.xsd - Each Type of Date and description have been taken from the .xsd file)
-
-elementsNumber	short	no	number of elements to extract     
-startDate	string	no	date begin search
-endDate	string	no	date end search
-timestamp	string	no	
-numTel	string	no	 
-gestore	string	no	 
-importo	long	no	amount
-canale	string	no	channel
-idTransazione	string	no	transaction id
-stato	string	no	
-if null by default will be set to "00" and will be
-
-extracted all the paid recharge
-
-phoneCompany	PhoneCompanyDTO	no	
- Info releated to phone
-
-
-
-PhoneCompanyDTO (DTO is defined in DGW file BankAccountDTO.xsd - Each Type of Date and description have been taken from the .xsd file)
-
-phoneCompanyCode	string	no	Operator phone code
-phoneCompanyName	long	no	Operator's name phone code
-siaCode	string	no	SIA code of phone operator
-
-
-kinTypeDTO (DTO is defined in DGW file CardDTO.xsd - Each Type of Date and description have been taken from the .xsd file)
-
-ownerPosition	string	no	    
-ownerId	long	no	
-operativeTypeCode	string	no	
-cardNumber	string	no	Number of card
-cardId	long	no	Unique identify of card in card procedure
-
-
-* Response *
-
-cards	CSECardDTO
-nextKinPosition	kinTypeDTO
+channels:
+  card-request:
+    address: card/request
+    description: Channel for sending credit card operation requests
+    messages:
+      GetCreditCardRequest:
+        $ref: '#/components/messages/GetCreditCardRequest'
+      BlockCreditCardRequest:
+        $ref: '#/components/messages/BlockCreditCardRequest'
+    
+ 
+operations:
+  GetCardList:
+    action: send
+    summary: Send a request to retrieve a list of credit cards
+    description: Operation to send a request for getting a list of credit cards for a specific person or account
+    channel:
+      $ref: '#/channels/card-request'
+    messages:
+      - $ref: '#/channels/card-request/messages/GetCreditCardRequest'
+    reply:
+      channel:
+        address: '$message.header#/replyTo'
+        description: > 
+          Reply is sent to topic specified in 'replyTo' property in the message header. 
+          By specification all Request messages require 'replyTo' property.
+      messages:
+        - $ref: '#/components/messages/GetCreditCardResponse'
+      
+  BlockCard:
+    action: send
+    summary: Send a request to block a credit card
+    description: Operation to send a request for blocking a specific credit card
+    channel:
+      $ref: '#/channels/card-request'
+    messages:
+      - $ref: '#/channels/card-request/messages/BlockCreditCardRequest'
+    reply:
+      channel:
+        address: '$message.header#/replyTo'
+        description: > 
+          Reply is sent to topic specified in 'replyTo' property in the message header. 
+          By specification all Request messages require 'replyTo' property.
+      messages:
+        - $ref: '#/components/messages/BlockCreditCardResponse'
+    
 
 
-CSECardDTO (DTO is defined in DGW file CardDTO.xsd - Each Type of Date and description have been taken from the .xsd file)
+components:
 
-cardId	string	Debit Card Number
+  messages:
+    GetCreditCardRequest:
+      traits:
+        - $ref: '#/components/messageTraits/RequestMessage'
+      name: GetCreditCardRequest
+      title: Get Credit Card List Request
+      summary: Request to retrieve a list of credit cards
+      description: Message sent to request a list of credit cards for a specific person or account
+      payload:
+        $ref: '#/components/schemas/GetBACreditCardListRequest'
 
+    BlockCreditCardRequest:
+      traits:
+        - $ref: '#/components/messageTraits/RequestMessage'
+      name: BlockCreditCardRequest
+      title: Block Credit Card Request
+      summary: Request to block a credit card
+      description: Message sent to request blocking of a specific credit card
+      payload:
+        $ref: '#/components/schemas/BlockBACreditCardRequest'
 
-002	DTO	
-Save response in a DTO
+    GetCreditCardResponse:
+      traits:
+        - $ref: '#/components/messageTraits/ResponseMessage'
+      name: GetCreditCardResponse
+      title: Get Credit Card List Response
+      summary: Response containing the list of credit cards
+      description: Message returned with the requested list of credit cards
+      payload:
+        $ref: '#/components/schemas/GetBACreditCardListResponse'
 
-Create a new DTO "DebitCardDTO" for saving the response from DGW service above
+    BlockCreditCardResponse:
+      traits:
+        - $ref: '#/components/messageTraits/ResponseMessage'
+      name: BlockCreditCardResponse
+      title: Block Credit Card Response
+      summary: Response confirming the blocking of a credit card
+      description: Message returned confirming the successful blocking of a credit card
+      payload:
+        $ref: '#/components/schemas/GenericTransactionResponse'
 
-003	DGWService	
-Get BA debit card block throught a call to DGW service.
+  messageTraits:
+    RequestMessage:
+      description: Common traits for all request messages
+      headers:
+        $ref: '#/components/schemas/RequestHeader'
+      correlationId:
+        $ref: "#/components/correlationIds/requestResponseCorrelationId"
 
-Service to call: CardService.blockBADebitCardCC
+    ResponseMessage:
+      description: Common traits for all response messages
+      headers:
+        $ref: '#/components/schemas/ResponseHeader'
+      correlationId:
+        $ref: "#/components/correlationIds/requestResponseCorrelationId" 
 
-* Request *
+    EventMessage:
+      description: Common traits for all event messages
+      headers:
+        $ref: '#/components/schemas/ResponseHeader'
+      correlationId:
+        $ref: "#/components/correlationIds/requestResponseCorrelationId"         
 
-For each cardId in DTO "DebitCardDTO" have to call the DGW service CardService.blockBADebitCardCC
+  schemas:
+    MessageTraits:
+      type: object
+      description: Common properties for all messages
+      properties:
+        messageId:
+          type: string
+          description: Unique identifier for the message
+          example: "msg-001"
+        timestamp:
+          type: string
+          format: date-time
+          description: Time when the message was created
+          example: "2024-10-11T10:30:00Z"
+        sourceSystem:
+          type: string
+          description: System that originated the message
+          example: "MobileApp"
+        targetSystem:
+          type: string
+          description: Intended recipient system of the message
+          example: "CardService"
+        traceId:
+          type: string
+          description: ID for tracing the message across systems
+          example: "trace-001"
+        spanId:
+          type: string
+          description: ID for a particular operation within a trace
+          example: "span-001"
+      required:
+        - messageId
+        - timestamp
+        - sourceSystem
+        - targetSystem
 
-<complexType name="BlockBADebitCardReq">
-personId	long	yes	CIF
-cardId	long	yes	card number
-blockType	string	no	
-Tipo di blocco (.funzione ) 'BC' blocco cautelativo con cattura carta, 'BR' blocco
-cautelativo con restituzione carta, 'BF' blocco furto smarrimento DEFAULT
-cardType	string	no	
-Card type (for example CC,DC and PA).
-flagControl	string	no	Flag control debit card
+    EventHeader:
+      allOf:
+        - $ref: '#/components/schemas/MessageTraits'
 
+    RequestReplyHeader:
+      allOf:
+        - $ref: '#/components/schemas/MessageTraits'
+        - type: object
+          properties:
+            replyTo:
+              type: string
+              description: Channel name where the response should be sent
+              example: "client-response-channel-001"
+            correlationId:
+              type: string
+              description: ID used to correlate related messages
+              example: "corr-001"
+              required:
+                - replyTo
 
-Example
+    RequestHeader:
+      allOf:
+        - $ref: '#/components/schemas/RequestReplyHeader'
+        - type: object
+          properties:
+            operationType:
+              type: string
+              description: Type of operation being requested
+              example: "GET_CREDIT_CARD_LIST"
+            replyTo:
+              type: string
+              description: Channel name where the response should be sent
+              example: "client-response-channel-001"
+            correlationId:
+              type: string
+              description: ID used to correlate related messages
+              example: "corr-001"
+              required:
+                - replyTo
+          correlationId:
+            $ref: '#/components/correlationIds/requestResponseCorrelationId'
 
+    ResponseHeader:
+      allOf:
+        - $ref: '#/components/schemas/RequestReplyHeader'
+        - type: object
+          properties:
+            statusCode:
+              type: string
+              description: HTTP-like status code of the operation
+              example: "200"
+            statusMessage:
+              type: string
+              description: Human-readable status message
+              example: "Success"
+          required:
+            - statusCode
+    
+    RequestOperation:
+      type: object
+          
+    GetBACreditCardListRequest:
+      type: object
+      description: Request payload for getting a list of credit cards
+      properties:
+        personId:
+          type: integer
+          format: int64
+          description: Unique identifier of the person
+          example: 123456789
+        accountDetail:
+          $ref: '#/components/schemas/BAAccountDetailDTO'
+        kin:
+          $ref: '#/components/schemas/kinTypeDTO'
+      example:
+        personId: 123456789
+        accountDetail:
+          elementsNumber: 10
+          startDate: "2024-01-01"
+          endDate: "2024-10-11"
+          numTel: "+1234567890"
+          gestore: "BankCo"
+          importo: 1000
+          canale: "MOBILE"
+          idTransazione: "TRX123456"
+          stato: "00"
+        kin:
+          ownerPosition: "PRIMARY"
+          ownerId: 987654321
+          cardNumber: "1234567890123456"
 
+    BlockBACreditCardRequest:
+      type: object
+      description: Request payload for blocking a credit card
+      properties:
+        personId:
+          type: integer
+          format: int64
+          description: Unique identifier of the person
+          example: 123456789
+        cardId:
+          type: integer
+          format: int64
+          description: Unique identifier of the card to be blocked
+          example: 1234567890123456
+        blockType:
+          type: string
+          description: Type of block to be applied
+          example: "BF"
+        cardType:
+          type: string
+          description: Type of the card
+          example: "CC"
+        flagControl:
+          type: string
+          description: Control flag for the block operation
+          example: "Y"
+      example:
+        personId: 123456789
+        cardId: 1234567890123456
+        blockType: "BF"
+        cardType: "CC"
+        flagControl: "Y"
 
+    GetBACreditCardListResponse:
+      type: object
+      description: Response payload for the get credit card list operation
+      properties:
+        cards:
+          type: array
+          description: List of credit cards
+          items:
+            $ref: '#/components/schemas/CSECardDTO'
+        nextKinPosition:
+          $ref: '#/components/schemas/kinTypeDTO'
+      example:
+        cards:
+          - cardId: "1234567890123456"
+          - cardId: "6543210987654321"
+        nextKinPosition:
+          ownerPosition: "SECONDARY"
+          ownerId: 987654322
 
+    GenericTransactionResponse:
+      type: object
+      description: Generic response payload for transaction operations
+      properties:
+        outcomeAuthentication:
+          $ref: '#/components/schemas/OutcomeSecuredTransactionDTO'
+      example:
+        outcomeAuthentication:
+          status: "SUCCESS"
+          message: "Credit card successfully blocked"
 
+    BAAccountDetailDTO:
+      type: object
+      description: Details of a bank account
+      properties:
+        elementsNumber:
+          type: integer
+          description: Number of elements to extract
+          example: 10
+        startDate:
+          type: string
+          description: Start date for the search
+          example: "2024-01-01"
+        endDate:
+          type: string
+          description: End date for the search
+          example: "2024-10-11"
+        timestamp:
+          type: string
+          description: Timestamp of the request
+          example: "2024-10-11T10:30:00Z"
+        numTel:
+          type: string
+          description: Phone number associated with the account
+          example: "+1234567890"
+        gestore:
+          type: string
+          description: Manager of the account
+          example: "BankCo"
+        importo:
+          type: integer
+          format: int64
+          description: Amount
+          example: 1000
+        canale:
+          type: string
+          description: Channel used for the operation
+          example: "MOBILE"
+        idTransazione:
+          type: string
+          description: Transaction ID
+          example: "TRX123456"
+        stato:
+          type: string
+          description: Status of the account
+          example: "00"
+        phoneCompany:
+          $ref: '#/components/schemas/PhoneCompanyDTO'
 
+    PhoneCompanyDTO:
+      type: object
+      description: Details of a phone company
+      properties:
+        phoneCompanyCode:
+          type: string
+          description: Code of the phone company
+          example: "TEL001"
+        phoneCompanyName:
+          type: integer
+          format: int64
+          description: Name of the phone company
+          example: 1
+        siaCode:
+          type: string
+          description: SIA code of the phone company
+          example: "SIA001"
 
-004	Return the response	
-Block card and send response
+    kinTypeDTO:
+      type: object
+      description: Details of a kin relationship
+      properties:
+        ownerPosition:
+          type: string
+          description: Position of the owner
+          example: "PRIMARY"
+        ownerId:
+          type: integer
+          format: int64
+          description: ID of the owner
+          example: 987654321
+        operativeTypeCode:
+          type: string
+          description: Code for the operative type
+          example: "OTC001"
+        cardNumber:
+          type: string
+          description: Number of the card
+          example: "1234567890123456"
+        cardId:
+          type: integer
+          format: int64
+          description: ID of the card
+          example: 1234567890123456
 
-The DGW service CardService.blockBADebitCardCC returns a GenericTransactionResponse.
+    CSECardDTO:
+      type: object
+      description: Details of a CSE card
+      properties:
+        cardId:
+          type: string
+          description: ID of the card
+          example: "1234567890123456"
 
-
-
-
-
-
-
-GenericMessage.xsd
-
- <complexType name="GenericTransactionResponse" abstract="false">
-
-    <complexContent>
-       <extension base="generic:GenericResponse">
-          <sequence>
-             <element name="outcomeAuthentication" type="genericDTO:OutcomeSecuredTransactionDTO" nillable="true" minOccurs="0" maxOccurs="1">
-                <annotation>
-                   <documentation>Esito autenticazione della transazione sicura.</documentation>
-                </annotation>
-             </element>
-          </sequence>
-       </extension>
-    </complexContent>
-</complexType>
-URI
+    OutcomeSecuredTransactionDTO:
+      type: object
+      description: Outcome of a secured transaction
+      properties:
+        status:
+          type: string
+          description: Status of the transaction
+          example: "SUCCESS"
+        message:
+          type: string
+          description: Detailed message about the transaction outcome
+          example: "Credit card successfully blocked"
+  
+  
+  correlationIds:
+    requestResponseCorrelationId:
+      location: '$message.header#/correlationId'          
