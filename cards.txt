@@ -1,0 +1,123 @@
+Sequence details
+001	DGWService	
+Get BA debit card List throught a call to DGW service.
+
+Service to call: CardService.getBADebitCardList
+
+* Request *
+
+Get debit cards list <complexType name="GetBADebitCardListReq">
+
+personId	long	mutually exclusive parameter to accountDetail	accountNumber     
+accountDetail	BAAccountDetailDTO	mutually exclusive parameter to personId	details of account
+kin	kinTypeDTO	no	Informations related to debit card
+
+BAAccountDetailDTO (DTO is defined in DGW file BankAccountDTO.xsd - Each Type of Date and description have been taken from the .xsd file)
+
+elementsNumber	short	no	number of elements to extract     
+startDate	string	no	date begin search
+endDate	string	no	date end search
+timestamp	string	no	
+numTel	string	no	 
+gestore	string	no	 
+importo	long	no	amount
+canale	string	no	channel
+idTransazione	string	no	transaction id
+stato	string	no	
+if null by default will be set to "00" and will be
+
+extracted all the paid recharge
+
+phoneCompany	PhoneCompanyDTO	no	
+ Info releated to phone
+
+
+
+PhoneCompanyDTO (DTO is defined in DGW file BankAccountDTO.xsd - Each Type of Date and description have been taken from the .xsd file)
+
+phoneCompanyCode	string	no	Operator phone code
+phoneCompanyName	long	no	Operator's name phone code
+siaCode	string	no	SIA code of phone operator
+
+
+kinTypeDTO (DTO is defined in DGW file CardDTO.xsd - Each Type of Date and description have been taken from the .xsd file)
+
+ownerPosition	string	no	    
+ownerId	long	no	
+operativeTypeCode	string	no	
+cardNumber	string	no	Number of card
+cardId	long	no	Unique identify of card in card procedure
+
+
+* Response *
+
+cards	CSECardDTO
+nextKinPosition	kinTypeDTO
+
+
+CSECardDTO (DTO is defined in DGW file CardDTO.xsd - Each Type of Date and description have been taken from the .xsd file)
+
+cardId	string	Debit Card Number
+
+
+002	DTO	
+Save response in a DTO
+
+Create a new DTO "DebitCardDTO" for saving the response from DGW service above
+
+003	DGWService	
+Get BA debit card block throught a call to DGW service.
+
+Service to call: CardService.blockBADebitCardCC
+
+* Request *
+
+For each cardId in DTO "DebitCardDTO" have to call the DGW service CardService.blockBADebitCardCC
+
+<complexType name="BlockBADebitCardReq">
+personId	long	yes	CIF
+cardId	long	yes	card number
+blockType	string	no	
+Tipo di blocco (.funzione ) 'BC' blocco cautelativo con cattura carta, 'BR' blocco
+cautelativo con restituzione carta, 'BF' blocco furto smarrimento DEFAULT
+cardType	string	no	
+Card type (for example CC,DC and PA).
+flagControl	string	no	Flag control debit card
+
+
+Example
+
+
+
+
+
+
+
+004	Return the response	
+Block card and send response
+
+The DGW service CardService.blockBADebitCardCC returns a GenericTransactionResponse.
+
+
+
+
+
+
+
+GenericMessage.xsd
+
+ <complexType name="GenericTransactionResponse" abstract="false">
+
+    <complexContent>
+       <extension base="generic:GenericResponse">
+          <sequence>
+             <element name="outcomeAuthentication" type="genericDTO:OutcomeSecuredTransactionDTO" nillable="true" minOccurs="0" maxOccurs="1">
+                <annotation>
+                   <documentation>Esito autenticazione della transazione sicura.</documentation>
+                </annotation>
+             </element>
+          </sequence>
+       </extension>
+    </complexContent>
+</complexType>
+URI
