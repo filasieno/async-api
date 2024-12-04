@@ -1,0 +1,71 @@
+{
+  "cdtTrfTxInf": [
+    {
+      "amt": {
+        "instdAmt": {
+          "value": 1.15,
+          "ccy": "EUR"
+        }
+      },
+      "cdtr": {
+        "nm": "Jan Johan"
+      },
+      "cdtrAcct": {
+        "id": {
+          "iban": "IT88D0327101600003500184000"
+        }
+      },
+      "splmtryData": {
+        "envlp": {
+          "ingSplmtryData": {
+            "ingbizData": {
+              "inglabels": {
+                "message": [
+                  {
+                    "key": "UltmtDbtrAcct.Id.IBAN",
+                    "value": "IT69M0347501605CC0010000088"
+                  },
+                  {
+                    "key": "AMS.CIF_IT",
+                    "value": "123"
+                  },
+                  {
+                    "key": "INGCmmnData.OriginationSource",
+                    "value": "888,9500451138,1"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "rmtInf": {
+        "ustrd": "IT69M0347501605CC0010000088 Chiusura conto"
+      }
+    }
+  ],
+  "ctrlSum": 1.15,
+  "dbtr": {
+    "id": {
+      "orgId": {
+        "othr": [
+          {
+            "id": "11241140158",
+            "schmeNm": {
+              "cd": "TXID"
+            }
+          }
+        ]
+      }
+    },
+    "nm": "ING Bank N.V."
+  },
+  "dbtrAcct": {
+    "id": {
+      "iban": "IT69M0347501605CC9500451138"
+    }
+  },
+  "reqdExctnDt": {
+    "dt": "2024-10-28"
+  }
+}
