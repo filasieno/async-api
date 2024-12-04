@@ -1,0 +1,325 @@
+asyncapi: 3.0.0
+info:
+  title: ITA Payment API
+  version: 1.0.0
+  description: This service is in charge of processing payments.
+  contact:
+    name: API Support
+    email: support@example.com
+    url: https://example.com/support
+  license:
+    name: ING Proprietary
+  tags:
+    - name: payment
+      description: Payment management operations
+
+servers:
+  development:
+    host: example.com
+    protocol: mqtt
+ 
+channels:
+  paymentRequest:
+    address: payment/requests
+    messages:
+      ExecutePaymentRequest:
+        $ref: '#/components/messages/ExecutePaymentRequest'
+ 
+operations:
+  executePayment:
+    action: send
+    description: |
+      This operation is used to execute a payment.
+    channel:
+      $ref: '#/channels/paymentRequest'
+    messages:
+      - $ref: '#/channels/paymentRequest/messages/ExecutePaymentRequest'
+    reply:
+      address:
+        description: Reply is sent to topic specified in 'replyTo' property in the message header
+        location: "$message.header#/replyTo"
+ 
+components:
+  messages:
+    ExecutePaymentRequest:
+      headers:
+        type: object
+        properties:
+          operation:
+            type: object
+            properties:
+              operationType:
+                type: string
+                const: 'RQST'
+              operationName:
+                type: string
+                const: 'ExecutePayment'
+      payload:
+        $ref: '#/components/schemas/ExecutePaymentRequestPayload'
+      traits:
+        - $ref: '#/components/messageTraits/ItaTechnicalEventModelHeaders'
+      
+    ExecutePaymentResponse:
+      payload:
+        type: object
+        properties:
+          paymentId:
+            type: string
+            description: Id of the payment
+  
+  schemas:
+ 
+    ####################################################################################
+    # Technical Event Model
+    ####################################################################################
+ 
+    ITATechnicalEventModel-Header:
+      type: object
+      required:
+        - id
+        - originId
+        - version
+        - sentTimestamp
+      properties:
+        id:
+          type: string
+          description: Message unique Identifier UUID
+          example: a53b977f-57e5-4691-b3f3-27c1842688eb
+        originId:
+          $ref: '#/components/schemas/ITATechnicalEventModel-ProcessID'
+        version:
+          type: string
+          description: Event schema version
+          example: 1.0.0
+        sentTimestamp:
+          description: Event production timestamp
+          $ref: '#/components/schemas/DateTimeType'
+          
+    ITATechnicalEventModel-Context:
+      type: object
+      required:
+        - sessionId
+        - sessionType
+        - sessionSequenceNumber
+        - creationTimestamp
+      properties:
+        sessionId:
+          type: string
+          description : |
+            This is the overall session identifier.
+            This field must contains the profileSession (see ESA - Auditing Logging TPA in references)
+            or a process session identifier when the process is not "started" by customer/employee
+          example: 391f8131-220f-4b2d-806e-fb6657981fc5
+        sessionType:
+          description: Session origin type (AT = AccessToken, BT = BatchToken)
+          enum:
+            - AT
+            - BT
+          example: AT
+        sessionSequenceNumber:
+          description: |
+            This is incremental number of messages that have been sent in the same session
+          type: number
+          example: 1
+        currentProcessId:
+          $ref: '#/components/schemas/ITATechnicalEventModel-ProcessID'
+        parentProcessId:
+          $ref: '#/components/schemas/ITATechnicalEventModel-ProcessID'
+        expiration:
+          description: the required processing timeout
+          $ref: '#/components/schemas/DateTimeType'
+          
+    ITATechnicalEventModel-Operation:
+      type: object
+      required:
+        - operationType
+        - replyTo
+        - correlationId
+      properties:
+        replyTo:
+          description: contains the reply topic list
+          type: string
+          example: PaymentTopic
+        # operationType:
+        #   description: |
+        #     This is the required action type. Notification event which informs that the current message is a notification concerning the current system state (it includes also ack);
+        #     Request event which informs that the current message is an execution request and it is mandatory to receive a response (also with status);
+        #     Response event which informs that the current message is an execution response it is always related to a request;
+        #   enum:
+        #     - NTFCTN
+        #     - RQST
+        #     - RSPNS
+        #   example: RQST
+        # operationName:
+        #   type: string
+        #   description: this is the specific actionid known by producer and consumer.
+        #   example: CloseAccountRequest
+        correlationID:
+          type: string
+          description: this is the identifier which binds request and response
+          example: c1421b85-aac1-4589-be59-c6eee819ad0d
+        repostOf:
+          type: string
+          description: reference to the original id
+          example: 06a0a35e-c686-4894-afa1-16806ca00906
+        repostCount:
+          description: retry Counter
+          type: integer
+          example: 1
+ 
+    ITATechnicalEventModel-ProcessID:
+        type: string
+        description: |
+          It logical initiator of the event conversation. 
+          
+          It should trace information related to:
+            1. BUSINESS DOMAIN
+            2. ORIGINATING API
+            3. ORIGINATING SERVICE
+            4. ORIGINATING_PROCESS_ID
+        example: Payments.ItaPaymentAPI.ExecutePayment.d9639f18-faca-48a7-8701-759511bb07a7
+        pattern: '^[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+){3}$'
+ 
+    ####################################################################################
+    # Payload Event Model
+    ####################################################################################
+ 
+    ExecutePaymentRequestPayload:
+      type: object
+      requires:
+        - originator
+        - debitorAccount
+        - creditorAccount
+        - requestedExecutionDate
+        - amount
+        - channel
+      properties:
+        debitor:
+          $ref: '#/components/schemas/DebitorAccount'
+        creditor:
+          $ref: '#/components/schemas/CreditorAccount' 
+        requestedExecutionDate:
+          type: string
+          example: "2024-10-28"
+        remittance:
+          type: string
+          example: "mortgage payment"
+        amount:
+          type: number
+          example: 200.34
+        channel:
+          enum: 
+          - Web
+          - Branch
+          - Backoffice
+          example: Backoffice
+
+    # DebitorAccount:
+    #   type: object
+    #   properties:
+    #     iban:
+    #       type: string
+    #       example: "IT69M0347501605CC9500451138"
+    #       pattern: ^(it|IT)[0-9]{2}[A-Za-z][0-9]{10}[0-9A-Za-z]{12}$
+ 
+    # CreditorAccount:
+    #   type: object
+    #   description: |
+    #     Defines a **key/value** pair.
+    #   additionalProperties: false
+    #   properties:
+    #     name:
+    #       type: string
+    #       example: "Jan Johan"
+    #     iban:
+    #       type: string
+    #       example: "IT88D0327101600003500184000"
+    #       pattern: ^(it|IT)[0-9]{2}[A-Za-z][0-9]{10}[0-9A-Za-z]{12}$
+    #     cif:
+    #       type: string
+    #       example: "89723984729834"
+    
+    CreditorAccount:
+      oneOf:
+        - $ref: '#/components/schemas/BankOwnedAccount'
+        - $ref: '#/components/schemas/CustomerAccount'
+        - $ref: '#/components/schemas/ExternalAccount'      
+    
+    DebitorAccount:
+      oneOf:
+        - $ref: '#/components/schemas/BankOwnedAccount'
+        - $ref: '#/components/schemas/CustomerAccount'
+
+    BankOwnedAccount:
+      type: object
+      properties:
+        kind: 
+          type: string
+          const: BANK_OWNED
+        iban:
+          type: string
+          example: "IT69M0347501605CC9500451138"
+          pattern: ^(it|IT)[0-9]{2}[A-Za-z][0-9]{10}[0-9A-Za-z]{12}$
+
+    CustomerAccount:
+      type: object
+      properties:
+        kind: 
+          type: string
+          const: CUSTOMER
+        fullName: 
+          type: string
+          example: "Jon Johan"
+        iban:
+          type: string
+          example: "IT69M0347501605CC9500451138"
+          pattern: ^(it|IT)[0-9]{2}[A-Za-z][0-9]{10}[0-9A-Za-z]{12}$
+        partyId:
+          $ref: '#/components/schemas/PartyId'
+          
+    PartyId:
+      type: object
+      additionalProperties: false
+      properties:
+        partyId: 
+          type: string
+          format: uuid
+        profileId:
+          type: string
+          format: uuid
+        cif:
+          type: string
+          example: "0002348726384"
+      
+    ExternalAccount:
+      type: object
+      properties:
+        kind: 
+          type: string
+          const: EXTERNAL
+        name: 
+          type: string
+          example: "Jon Johan"
+        iban:
+          type: string
+          example: "IT69M0347501605CC9500451138"
+          pattern: ^(it|IT)[0-9]{2}[A-Za-z][0-9]{10}[0-9A-Za-z]{12}$
+
+    DateTimeType:
+      type: string
+      pattern: ^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|1\d|2[0-4])\s(0\d|1\d|2[0-3])\.(0\d|[1-5]\d)\.(0\d|[1-5]\d)$
+      example: "2024-12-20 12.30.22"
+
+  messageTraits:
+    ItaTechnicalEventModelHeaders:
+      headers:
+        type: object
+        properties:
+          header:
+            $ref: '#/components/schemas/ITATechnicalEventModel-Header'
+          operation:
+            $ref: '#/components/schemas/ITATechnicalEventModel-Operation'
+          context:
+            $ref: '#/components/schemas/ITATechnicalEventModel-Context'
+ 
+          
