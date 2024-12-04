@@ -1,0 +1,108 @@
+asyncapi: 3.0.0
+info:
+  title: ITA Payment API
+  version: 1.0.0
+  description: This service is in charge of processing payments.
+
+components:
+
+  messageTraits:
+    ITATechnicalEventModelHeader:
+      headers:
+        type: object
+        required:
+          - id
+          - version
+          - originProcessId
+          - currentProcessId
+          - sessionType        
+          - sessionId
+          - sentTimestamp 
+          - operationType
+          - operationName         
+        properties:
+          id:
+            type: string
+            description: Message unique Identifier UUID
+            example: a53b977f-57e5-4691-b3f3-27c1842688eb
+          version:
+            type: string
+            description: Event schema version
+            example: 1.0.0
+          sentTimestamp:
+            description: Event production timestamp
+            $ref: "#/components/schemas/Timestamp"
+          sessionType:
+            description: Session origin type (AT = AccessToken, BT = BatchToken)
+            enum:
+              - AT
+              - BT
+            example: AT
+          sessionId:
+            type: string
+            description : |
+              This is the overall session identifier.
+              This field must contains the profileSession (see ESA - Auditing Logging TPA in references)
+              or a process session identifier when the process is not "started" by customer/employee
+            example: 391f8131-220f-4b2d-806e-fb6657981fc5
+          originProcessId:
+            $ref: "#/components/schemas/ProcessID"
+          currentProcessId:
+            $ref: '#/components/schemas/ProcessID'
+          parentProcessId:
+            $ref: '#/components/schemas/ProcessID'
+          expirationTimestamp:
+            description: the required processing timeout
+            $ref: '#/components/schemas/Timestamp'
+          correlationID:
+            type: string
+            description: this is the identifier which binds request and response
+            example: c1421b85-aac1-4589-be59-c6eee819ad0d
+          replyTo:
+            description: contains the reply topic list
+            type: string
+            example: PaymentTopic
+          repostOf:
+            type: string
+            description: reference to the original id
+            example: 06a0a35e-c686-4894-afa1-16806ca00906
+          repostCount:
+            description: retry Counter
+            type: integer
+            example: 1
+          operationType:
+            description: |
+              This is the required action type. Notification event which informs that the current message is a notification concerning the current system state (it includes also ack);
+              Request event which informs that the current message is an execution request and it is mandatory to receive a response (also with status);
+              Response event which informs that the current message is an execution response it is always related to a request;
+            enum:
+              - NTFCTN
+              - RQST
+              - RSPNS
+            example: RQST
+          operationName:
+            type: string
+            description: this is the specific actionid known by producer and consumer.
+            example: CloseAccountRequest
+
+  schemas:
+  
+    Timestamp:
+      type: number
+      format: date-time
+      description: Epoch timestamp in ISO 8601 format
+      example: 1733302629000
+
+    ProcessID:
+      type: string
+      description: |
+        It logical initiator of the event conversation. 
+        
+        It should trace information related to:
+          1. BUSINESS DOMAIN
+          2. ORIGINATING API
+          3. ORIGINATING SERVICE
+          4. ORIGINATING_PROCESS_ID
+      example: Payments.ItaPaymentAPI.ExecutePayment.d9639f18-faca-48a7-8701-759511bb07a7
+      pattern: '^[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+){3}$'
+
